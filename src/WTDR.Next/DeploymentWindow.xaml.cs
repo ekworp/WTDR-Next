@@ -10,6 +10,9 @@ public partial class DeploymentWindow : Window
     private readonly TaskEngine _engine = new();
     private readonly PackService _packService = new();
     private readonly SystemOperationsService _systemOperations = new();
+    private readonly EnvironmentService _environmentService = new();
+    private readonly FileLogger _logger = new();
+    private readonly DeploymentStateStore _stateStore = new();
     private readonly string _mode;
 
     public DeploymentWindow(string mode)
@@ -24,6 +27,10 @@ public partial class DeploymentWindow : Window
         try
         {
             var configPath = Path.Combine(AppContext.BaseDirectory, "WTDR_Config.ini");
+            var environment = _environmentService.Inspect();
+            _logger.Info($"启动部署模式={_mode}, 身份={environment.Identity}, 管理员={environment.IsAdministrator}, SYSTEM={environment.IsSystem}, 架构={environment.Architecture}");
+            if (!environment.IsAdministrator && !environment.IsSystem)
+                throw new UnauthorizedAccessException("部署任务需要管理员或 SYSTEM 权限。");
             if (!File.Exists(configPath))
             {
                 Log($"未找到配置文件：{configPath}");
@@ -52,6 +59,7 @@ public partial class DeploymentWindow : Window
             {
                 StageText.Text = StageTitle(stages[index]);
                 CountText.Text = $"阶段 {index + 1} / {stages.Length}";
+                _stateStore.Save(new DeploymentState(_mode, stages[index], index, false, DateTimeOffset.Now, null));
                 await _engine.RunStageAsync(configuration, stages[index], progress, CancellationToken.None);
             }
 
@@ -71,6 +79,7 @@ public partial class DeploymentWindow : Window
             StatusText.Text = "可以关闭窗口或继续进入系统";
             TaskProgress.IsIndeterminate = false;
             TaskProgress.Value = 100;
+            _stateStore.Save(new DeploymentState(_mode, "Completed", stages.Length, true, DateTimeOffset.Now, null));
         }
         catch (Exception ex)
         {
@@ -79,7 +88,9 @@ public partial class DeploymentWindow : Window
             StatusText.Text = "请查看日志并处理失败任务";
             TaskProgress.IsIndeterminate = false;
             TaskProgress.Value = 0;
-            Log($"错误：{ex}");
+            _stateStore.Save(new DeploymentState(_mode, StageText.Text, 0, false, DateTimeOffset.Now, ex.Message));
+            _logger.Error(ex.ToString());
+            Log($"错误：{ex.Message}");
         }
     }
 
@@ -91,5 +102,5 @@ public partial class DeploymentWindow : Window
         _ => stage
     };
 
-    private void Log(string message) => LogBox.Text += $"[{DateTime.Now:HH:mm:ss}] {message}{Environment.NewLine}";
+    private void Log(string message) { _logger.Info(message); LogBox.Text += $"[{DateTime.Now:HH:mm:ss}] {message}{Environment.NewLine}"; }
 }

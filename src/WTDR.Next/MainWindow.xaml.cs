@@ -43,7 +43,7 @@ public partial class MainWindow : Window
     private void Refresh_Click(object sender, RoutedEventArgs e) => RefreshPackages();
     private void Packages_Click(object sender, RoutedEventArgs e) => PackageList.Focus(FocusState.Programmatic);
     private void Logs_Click(object sender, RoutedEventArgs e) => LogBox.Focus(FocusState.Programmatic);
-    private async void Settings_Click(object sender, RoutedEventArgs e) => await ShowMessageAsync("设置中心将在后续版本提供。", "WTDR.Next");
+    private void Settings_Click(object sender, RoutedEventArgs e) => new ConfigEditorWindow().Activate();
     private void Log(string message) => LogBox.Text += $"[{DateTime.Now:HH:mm:ss}] {message}{Environment.NewLine}";
 
     private async Task ShowMessageAsync(string message, string title)
