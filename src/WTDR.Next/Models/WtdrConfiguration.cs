@@ -14,4 +14,10 @@ public sealed class WtdrConfiguration
     public bool OsUpdateEnabled { get; init; }
     public bool OsUpdatePackEnabled { get; init; }
     public bool DeleteDeploymentFiles { get; init; }
+    public bool DisableDefender { get; init; }
+    public string Wallpaper { get; init; } = "";
+    public string DeploymentDirectory { get; init; } = "";
+    public bool RdpEnabled { get; init; }
+    public int RdpPort { get; init; }
+    public bool LimitBlankPasswordRdp { get; init; }
 }

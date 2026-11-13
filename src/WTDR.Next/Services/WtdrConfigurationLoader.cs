@@ -20,6 +20,12 @@ public sealed class WtdrConfigurationLoader
             OsUpdateEnabled = ini.Get("OSUpdate", "Use") == "1",
             OsUpdatePackEnabled = ini.Get("OSUpdate", "Pack") == "1",
             DeleteDeploymentFiles = ini.Get("Other", "ByeDel_Watch") == "1"
+            ,DisableDefender = ini.Get("SysOpt", "DisableWD") == "1"
+            ,Wallpaper = ini.Get("SysOpt", "Wallpaper")
+            ,DeploymentDirectory = ini.Get("Other", "ByeDel")
+            ,RdpEnabled = ini.Get("RDP", "Enable") == "1"
+            ,RdpPort = int.TryParse(ini.Get("RDP", "Port"), out var rdpPort) ? rdpPort : 0
+            ,LimitBlankPasswordRdp = ini.Get("RDP", "LimitBlankPwd") == "1"
         };
 
         foreach (var section in new[] { "ReadyDeploy", "Deploying", "DeployOK", "FirstLogon", "FirstDesktop" })

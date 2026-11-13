@@ -9,6 +9,7 @@ public partial class DeploymentWindow : Window
     private readonly WtdrConfigurationLoader _loader = new();
     private readonly TaskEngine _engine = new();
     private readonly PackService _packService = new();
+    private readonly SystemOperationsService _systemOperations = new();
     private readonly string _mode;
 
     public DeploymentWindow(string mode)
@@ -54,6 +55,9 @@ public partial class DeploymentWindow : Window
                 StageText.Text = "正在应用软件包";
                 await _packService.ApplyConfiguredAsync(packConfigPath, packFolder, _mode, progress, CancellationToken.None);
             }
+
+            StageText.Text = "正在应用系统配置";
+            await _systemOperations.ApplyAsync(configuration, AppContext.BaseDirectory, progress, CancellationToken.None);
 
             StageText.Text = "部署完成";
             CurrentTaskText.Text = "所有部署任务已执行完成。";
