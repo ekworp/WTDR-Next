@@ -29,4 +29,6 @@ internal sealed class IniFile
 
     public IEnumerable<KeyValuePair<string, string>> Values(string section) =>
         _sections.TryGetValue(section, out var values) ? values : [];
+
+    public IEnumerable<string> Sections => _sections.Keys;
 }

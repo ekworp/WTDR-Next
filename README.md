@@ -10,6 +10,11 @@
 - 支持 `Pack.Before`、`Pack.After` 中的 `R|程序|参数` 任务
 - 支持 `RunTiming` 的部署环境/桌面环境匹配
 - 实时日志、错误提示和软件包应用状态
+- 部署模式悬浮执行窗口（`/Deploy`）
+- 首次进入桌面模式（`/FirstDesktop`）
+- 兼容 `ReadyDeploy`、`Deploying`、`DeployOK`、`FirstLogon`、`FirstDesktop` 任务段
+- 支持 `R|程序|参数` 和 `C|命令` 任务
+- 支持调用外部 `7z.exe` 应用 `.7z` 软件包
 
 ## 软件包格式（MVP）
 
@@ -48,5 +53,14 @@ Task1=
 dotnet build WTDR.Next.sln
 dotnet run --project src/WTDR.Next
 ```
+
+部署模式：
+
+```powershell
+dotnet run --project src/WTDR.Next -- /Deploy
+dotnet run --project src/WTDR.Next -- /FirstDesktop
+```
+
+将 `WTDR_Config.ini` 放到程序目录后，部署窗口会自动执行配置中的阶段任务；软件包目录约定为 `WTDR.Pack\Pack`。应用 `.7z` 包时，需要将 `7z.exe` 放到程序目录或加入系统 PATH。
 
 本目录不包含旧的 WTDR 文档项目；附件 JSON 仅作为需求参考保留。

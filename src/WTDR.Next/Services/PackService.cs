@@ -1,5 +1,6 @@
 using System.IO.Compression;
 using System.Text;
+using System.Diagnostics;
 using WTDR.Next.Models;
 
 namespace WTDR.Next.Services;
@@ -17,6 +18,22 @@ public sealed class PackService
             .OrderBy(pack => pack.Name).ToList();
     }
 
+    public async Task ApplyConfiguredAsync(string configPath, string packFolder, string mode, IProgress<string>? progress, CancellationToken cancellationToken)
+    {
+        var ini = IniFile.Load(configPath);
+        foreach (var section in ini.Sections.Where(x => x.StartsWith("Pack", StringComparison.OrdinalIgnoreCase) && x.Length > 4).OrderBy(x => x))
+        {
+            if (ini.Get(section, "Run") != "1") continue;
+            if (mode.Equals("Update", StringComparison.OrdinalIgnoreCase) && ini.Get(section, "OSUpdate") != "1") continue;
+            if (mode.Equals("Desktop", StringComparison.OrdinalIgnoreCase) && ini.Get(section, "FirstDesktop") == "0") continue;
+            var name = ini.Get(section, "Pack_Name");
+            if (string.IsNullOrWhiteSpace(name)) continue;
+            var path = Path.Combine(packFolder, name);
+            if (!File.Exists(path)) { progress?.Report($"跳过缺失软件包：{name}"); continue; }
+            await ApplyAsync(new PackInfo(name, path, Path.GetExtension(path).Equals(".7z", StringComparison.OrdinalIgnoreCase)), mode, progress, cancellationToken);
+        }
+    }
+
     public async Task ApplyAsync(PackInfo pack, string mode, IProgress<string>? progress, CancellationToken cancellationToken)
     {
         var work = Path.Combine(Path.GetTempPath(), "WTDR.Next", Guid.NewGuid().ToString("N"));
@@ -24,7 +41,7 @@ public sealed class PackService
         try
         {
             progress?.Report($"准备软件包：{pack.Name}");
-            if (pack.IsArchive) throw new NotSupportedException("当前版本暂不内置 7z 解压器，请将软件包保存为 ZIP 内容的 .Pack 文件，或后续接入 7-Zip。");
+            if (pack.IsArchive) await Extract7zAsync(pack.Path, work, cancellationToken);
             else ZipFile.ExtractToDirectory(pack.Path, work);
             var configPath = Path.Combine(work, "@@Pack@@", "Config.ini");
             if (!File.Exists(configPath)) throw new InvalidDataException("软件包缺少 @@Pack@@\\Config.ini");
@@ -42,6 +59,24 @@ public sealed class PackService
             progress?.Report("应用完成");
         }
         finally { try { Directory.Delete(work, true); } catch { } }
+    }
+
+    private static async Task Extract7zAsync(string archive, string destination, CancellationToken token)
+    {
+        var sevenZip = new[] { Path.Combine(AppContext.BaseDirectory, "7z.exe"), "7z.exe", "7za.exe" }
+            .FirstOrDefault(path => path.Contains(Path.DirectorySeparatorChar) ? File.Exists(path) : true);
+        if (sevenZip is null) throw new FileNotFoundException("未找到 7z.exe，请将 7z.exe 放到程序目录或加入 PATH。", "7z.exe");
+        var process = Process.Start(new ProcessStartInfo
+        {
+            FileName = sevenZip,
+            Arguments = $"x -y -o\"{destination}\" \"{archive}\"",
+            UseShellExecute = false,
+            CreateNoWindow = true,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true
+        }) ?? throw new InvalidOperationException("无法启动 7z.exe");
+        await process.WaitForExitAsync(token);
+        if (process.ExitCode != 0) throw new InvalidDataException($"7z 解压失败：{archive}");
     }
 
     private static PackConfig ReadConfig(string path)
