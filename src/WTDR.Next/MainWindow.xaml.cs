@@ -2,6 +2,9 @@ using System.Diagnostics;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
+using Microsoft.UI;
+using Microsoft.UI.Windowing;
+using WinRT.Interop;
 using WTDR.Next.Models;
 using WTDR.Next.Services;
 
@@ -17,6 +20,7 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
         SystemBackdrop = new MicaBackdrop();
+        SetWindowTitle("WTDR.Next - Windows 部署控制台");
         EnvironmentText.Text = $"{Environment.OSVersion.VersionString}\n架构：{(Environment.Is64BitOperatingSystem ? "X64" : "X86")}\n权限：{(new System.Security.Principal.WindowsPrincipal(System.Security.Principal.WindowsIdentity.GetCurrent()).IsInRole(System.Security.Principal.WindowsBuiltInRole.Administrator) ? "管理员" : "普通用户")}";
         RefreshPackages();
         Log("WTDR.Next 已启动");
@@ -57,6 +61,12 @@ public partial class MainWindow : Window
     private void Settings_Click(object sender, RoutedEventArgs e) => new ConfigEditorWindow().Activate();
     private void Log(string message) => LogBox.Text += $"[{DateTime.Now:HH:mm:ss}] {message}{Environment.NewLine}";
     private void ClearLog_Click(object sender, RoutedEventArgs e) => LogBox.Text = "";
+
+    private void SetWindowTitle(string title)
+    {
+        var windowId = Win32Interop.GetWindowIdFromWindow(WindowNative.GetWindowHandle(this));
+        AppWindow.GetFromWindowId(windowId).Title = title;
+    }
 
     private async Task ShowMessageAsync(string message, string title)
     {

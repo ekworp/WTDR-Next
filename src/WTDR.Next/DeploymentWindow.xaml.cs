@@ -1,4 +1,7 @@
 using Microsoft.UI.Xaml;
+using Microsoft.UI;
+using Microsoft.UI.Windowing;
+using WinRT.Interop;
 using WTDR.Next.Models;
 using WTDR.Next.Services;
 
@@ -19,6 +22,8 @@ public partial class DeploymentWindow : Window
     {
         _mode = mode;
         InitializeComponent();
+        var windowId = Win32Interop.GetWindowIdFromWindow(WindowNative.GetWindowHandle(this));
+        AppWindow.GetFromWindowId(windowId).Title = "WTDR.Next - Windows 部署中";
         _ = RunDeploymentAsync();
     }
 
