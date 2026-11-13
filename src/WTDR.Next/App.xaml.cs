@@ -10,7 +10,9 @@ public partial class App : Microsoft.UI.Xaml.Application
             .Any(value => value.Equals("/Deploy", StringComparison.OrdinalIgnoreCase) || value.Equals("--deploy", StringComparison.OrdinalIgnoreCase));
         var desktopMode = Environment.GetCommandLineArgs()
             .Any(value => value.Equals("/FirstDesktop", StringComparison.OrdinalIgnoreCase) || value.Equals("--first-desktop", StringComparison.OrdinalIgnoreCase));
-        _window = deployMode ? new DeploymentWindow("Deploy") : desktopMode ? new DeploymentWindow("Desktop") : new MainWindow();
+        var updateMode = Environment.GetCommandLineArgs()
+            .Any(value => value.Equals("/Update", StringComparison.OrdinalIgnoreCase) || value.Equals("--update", StringComparison.OrdinalIgnoreCase));
+        _window = deployMode ? new DeploymentWindow("Deploy") : desktopMode ? new DeploymentWindow("Desktop") : updateMode ? new DeploymentWindow("Update") : new MainWindow();
         _window.Activate();
     }
 }

@@ -9,7 +9,7 @@ public sealed class SystemOperationsService
     public async Task ApplyAsync(WtdrConfiguration configuration, string root, IProgress<string>? progress, CancellationToken token)
     {
         if (configuration.HostNameEnabled)
-            await SetHostNameAsync(configuration.HostNamePrefix, progress, token);
+            await SetHostNameAsync(configuration.HostNamePrefix, configuration.HostNameMode, progress, token);
         if (configuration.AdministratorEnabled)
             await RunCommandAsync("net.exe", "user Administrator /active:yes", progress, token);
         if (configuration.UacEnabled)
@@ -33,10 +33,10 @@ public sealed class SystemOperationsService
         await Task.Run(() => Directory.Delete(expanded, true), token);
     }
 
-    private static async Task SetHostNameAsync(string prefix, IProgress<string>? progress, CancellationToken token)
+    private static async Task SetHostNameAsync(string prefix, string mode, IProgress<string>? progress, CancellationToken token)
     {
         if (string.IsNullOrWhiteSpace(prefix)) return;
-        var name = prefix.Length > 15 ? prefix[..15] : prefix;
+        var name = BuildHostName(prefix, mode);
         progress?.Report($"设置主机名：{name}");
         await RunPowerShellAsync($"Rename-Computer -NewName '{name.Replace("'", "''")}' -Force", progress, token);
     }
@@ -66,6 +66,21 @@ public sealed class SystemOperationsService
         if (!File.Exists(path)) return;
         progress?.Report($"设置壁纸：{Path.GetFileName(path)}");
         await RunPowerShellAsync($"Set-ItemProperty -Path 'HKCU:\\Control Panel\\Desktop' -Name Wallpaper -Value '{path.Replace("'", "''")}'", progress, token);
+        await RunCommandAsync("Rundll32.exe", "USER32.DLL,UpdatePerUserSystemParameters", progress, token);
+    }
+
+    private static string BuildHostName(string prefix, string mode)
+    {
+        var date = DateTime.Now.ToString("yyMMdd");
+        var random = Random.Shared.Next(0, 999).ToString("D3");
+        var value = mode switch
+        {
+            "1" => prefix,
+            "2" => date + random,
+            _ => prefix + "-" + date + random
+        };
+        value = value.Replace(" ", "-");
+        return value[..Math.Min(15, value.Length)];
     }
 
     private static async Task RunPowerShellAsync(string command, IProgress<string>? progress, CancellationToken token) =>

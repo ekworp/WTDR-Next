@@ -31,7 +31,7 @@ public sealed class TaskEngine
             throw new NotSupportedException($"暂不支持任务类型：{task.Kind}");
         }
 
-        var process = Process.Start(new ProcessStartInfo
+        using var process = Process.Start(new ProcessStartInfo
         {
             FileName = command,
             Arguments = arguments,
@@ -40,6 +40,11 @@ public sealed class TaskEngine
             WorkingDirectory = AppContext.BaseDirectory
         }) ?? throw new InvalidOperationException($"无法启动任务：{command}");
 
-        if (task.Wait) await process.WaitForExitAsync(cancellationToken);
+        if (task.Wait)
+        {
+            await process.WaitForExitAsync(cancellationToken);
+            progress?.Report($"任务结束，返回码：{process.ExitCode}");
+            if (process.ExitCode != 0) throw new InvalidOperationException($"任务失败，返回码：{process.ExitCode}：{task.Command}");
+        }
     }
 }

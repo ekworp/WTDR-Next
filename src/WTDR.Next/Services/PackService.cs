@@ -24,17 +24,19 @@ public sealed class PackService
         foreach (var section in ini.Sections.Where(x => x.StartsWith("Pack", StringComparison.OrdinalIgnoreCase) && x.Length > 4).OrderBy(x => x))
         {
             if (ini.Get(section, "Run") != "1") continue;
+            if (mode.Equals("Deploy", StringComparison.OrdinalIgnoreCase) && ini.Get(section, "FirstDesktop") == "1") continue;
             if (mode.Equals("Update", StringComparison.OrdinalIgnoreCase) && ini.Get(section, "OSUpdate") != "1") continue;
             if (mode.Equals("Desktop", StringComparison.OrdinalIgnoreCase) && ini.Get(section, "FirstDesktop") == "0") continue;
             var name = ini.Get(section, "Pack_Name");
             if (string.IsNullOrWhiteSpace(name)) continue;
             var path = Path.Combine(packFolder, name);
             if (!File.Exists(path)) { progress?.Report($"跳过缺失软件包：{name}"); continue; }
-            await ApplyAsync(new PackInfo(name, path, Path.GetExtension(path).Equals(".7z", StringComparison.OrdinalIgnoreCase)), mode, progress, cancellationToken);
+            var pack = ReadConfigFromArchiveOverrides(path, ini, section);
+            await ApplyAsync(new PackInfo(name, path, Path.GetExtension(path).Equals(".7z", StringComparison.OrdinalIgnoreCase)), mode, progress, cancellationToken, pack);
         }
     }
 
-    public async Task ApplyAsync(PackInfo pack, string mode, IProgress<string>? progress, CancellationToken cancellationToken)
+    public async Task ApplyAsync(PackInfo pack, string mode, IProgress<string>? progress, CancellationToken cancellationToken, PackConfig? overrides = null)
     {
         var work = Path.Combine(Path.GetTempPath(), "WTDR.Next", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(work);
@@ -46,6 +48,12 @@ public sealed class PackService
             var configPath = Path.Combine(work, "@@Pack@@", "Config.ini");
             if (!File.Exists(configPath)) throw new InvalidDataException("软件包缺少 @@Pack@@\\Config.ini");
             var config = ReadConfig(configPath);
+            if (overrides is not null)
+            {
+                if (!string.IsNullOrWhiteSpace(overrides.Title)) config.Title = overrides.Title;
+                if (!string.IsNullOrWhiteSpace(overrides.ApplyPath)) config.ApplyPath = overrides.ApplyPath;
+                config.AfterTasks.AddRange(overrides.AfterTasks);
+            }
             if (!IsApplicable(config, mode)) throw new InvalidOperationException("软件包与当前运行环境不匹配");
             progress?.Report($"应用：{config.Title}");
             await RunTasksAsync(config.BeforeTasks, work, progress, cancellationToken);
@@ -63,9 +71,8 @@ public sealed class PackService
 
     private static async Task Extract7zAsync(string archive, string destination, CancellationToken token)
     {
-        var sevenZip = new[] { Path.Combine(AppContext.BaseDirectory, "7z.exe"), "7z.exe", "7za.exe" }
-            .FirstOrDefault(path => path.Contains(Path.DirectorySeparatorChar) ? File.Exists(path) : true);
-        if (sevenZip is null) throw new FileNotFoundException("未找到 7z.exe，请将 7z.exe 放到程序目录或加入 PATH。", "7z.exe");
+        var local7z = Path.Combine(AppContext.BaseDirectory, "7z.exe");
+        var sevenZip = File.Exists(local7z) ? local7z : "7z.exe";
         var process = Process.Start(new ProcessStartInfo
         {
             FileName = sevenZip,
@@ -92,6 +99,14 @@ public sealed class PackService
         return config;
     }
 
+    private static PackConfig ReadConfigFromArchiveOverrides(string archive, IniFile ini, string section)
+    {
+        var config = new PackConfig { Title = ini.Get(section, "Pack_Title") };
+        foreach (var item in ini.Values(section).Where(x => x.Key.StartsWith("Pack.After.Task", StringComparison.OrdinalIgnoreCase)))
+            if (!string.IsNullOrWhiteSpace(item.Value)) config.AfterTasks.Add(item.Value);
+        return config;
+    }
+
     private static bool IsApplicable(PackConfig config, string mode) => string.IsNullOrWhiteSpace(config.RunTiming) || config.RunTiming == (mode == "Deploy" ? "1" : "2");
 
     private static async Task RunTasksAsync(IEnumerable<string> tasks, string root, IProgress<string>? progress, CancellationToken token)
@@ -109,14 +124,20 @@ public sealed class PackService
         }
     }
 
-    private static string Expand(string value) => Environment.ExpandEnvironmentVariables(value.Replace("%ApplyPath%", ""));
+    private static string Expand(string value)
+    {
+        var expanded = Environment.ExpandEnvironmentVariables(value);
+        if (string.IsNullOrWhiteSpace(expanded) || expanded.Equals("%ApplyPath%", StringComparison.OrdinalIgnoreCase))
+            return Path.GetPathRoot(Environment.SystemDirectory) ?? "C:\\";
+        return expanded.Replace("%ApplyPath%", Path.GetPathRoot(Environment.SystemDirectory) ?? "C:\\", StringComparison.OrdinalIgnoreCase);
+    }
 
     private static void CopyDirectory(string source, string destination, bool skipConfig)
     {
         foreach (var directory in Directory.EnumerateDirectories(source, "*", SearchOption.AllDirectories)) Directory.CreateDirectory(directory.Replace(source, destination));
         foreach (var file in Directory.EnumerateFiles(source, "*", SearchOption.AllDirectories))
         {
-            if (skipConfig && file.Contains(Path.Combine("@@Pack@@", "Config.ini"), StringComparison.OrdinalIgnoreCase)) continue;
+            if (skipConfig && file.Contains(Path.Combine("@@Pack@@", ""), StringComparison.OrdinalIgnoreCase)) continue;
             var target = file.Replace(source, destination); Directory.CreateDirectory(Path.GetDirectoryName(target)!); File.Copy(file, target, true);
         }
     }

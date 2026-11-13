@@ -35,7 +35,14 @@ public partial class DeploymentWindow : Window
             }
 
             var configuration = _loader.Load(configPath);
-            var stages = _mode == "Desktop" ? new[] { "FirstLogon", "FirstDesktop" } : new[] { "ReadyDeploy", "Deploying", "DeployOK" };
+            if (_mode == "Update" && !configuration.OsUpdateEnabled)
+            {
+                StageText.Text = "系统升级接管未启用";
+                CurrentTaskText.Text = "配置中的 OSUpdate.Use 不是 1。";
+                TaskProgress.IsIndeterminate = false;
+                return;
+            }
+            var stages = _mode == "Desktop" ? new[] { "FirstLogon", "FirstDesktop" } : _mode == "Update" ? new[] { "OSUpdate", "OSUpdateDesktop" } : new[] { "ReadyDeploy", "Deploying", "DeployOK" };
             var progress = new Progress<string>(message =>
             {
                 CurrentTaskText.Text = message;

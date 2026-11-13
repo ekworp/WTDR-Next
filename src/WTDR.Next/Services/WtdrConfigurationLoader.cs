@@ -35,6 +35,12 @@ public sealed class WtdrConfigurationLoader
                 .Select(x => TaskDefinition.Parse(x.Value)).ToList();
             config.Stages[section] = tasks;
         }
+        config.Stages["OSUpdate"] = ReadTasks(ini, "OSUpdate", "U_Task");
+        config.Stages["OSUpdateDesktop"] = ReadTasks(ini, "OSUpdate", "D_Task");
         return config;
     }
+
+    private static List<TaskDefinition> ReadTasks(IniFile ini, string section, string prefix) => ini.Values(section)
+        .Where(x => x.Key.StartsWith(prefix, StringComparison.OrdinalIgnoreCase) && !string.IsNullOrWhiteSpace(x.Value))
+        .Select(x => TaskDefinition.Parse(x.Value)).ToList();
 }

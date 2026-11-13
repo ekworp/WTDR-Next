@@ -59,6 +59,7 @@ dotnet run --project src/WTDR.Next
 ```powershell
 dotnet run --project src/WTDR.Next -- /Deploy
 dotnet run --project src/WTDR.Next -- /FirstDesktop
+dotnet run --project src/WTDR.Next -- /Update
 ```
 
 将 `WTDR_Config.ini` 放到程序目录后，部署窗口会自动执行配置中的阶段任务；软件包目录约定为 `WTDR.Pack\Pack`。应用 `.7z` 包时，需要将 `7z.exe` 放到程序目录或加入系统 PATH。
