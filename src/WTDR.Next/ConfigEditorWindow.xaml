@@ -2,7 +2,7 @@
   <Grid Background="{StaticResource WindowBrush}" Padding="24">
     <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
     <StackPanel Grid.Row="0"><TextBlock Text="部署配置" FontSize="26" FontWeight="SemiBold"/><TextBlock Text="编辑 WTDR_Config.ini" Foreground="{StaticResource MutedBrush}" Margin="0,5,0,16"/></StackPanel>
-    <TextBox Grid.Row="1" x:Name="Editor" AcceptsReturn="True" TextWrapping="NoWrap" FontFamily="Cascadia Mono" FontSize="13" Background="#0F172A" Foreground="#E5E7EB" BorderThickness="0" Padding="14" ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollBarVisibility="Auto"/>
+    <TextBox Grid.Row="1" x:Name="Editor" AcceptsReturn="True" TextWrapping="NoWrap" FontFamily="Cascadia Mono" FontSize="13" Background="#FFFFFF" Foreground="#344054" BorderBrush="#D0D5DD" BorderThickness="1" Padding="14" ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollBarVisibility="Auto"/>
     <Grid Grid.Row="2" Margin="0,16,0,0"><TextBlock x:Name="PathText" Foreground="{StaticResource MutedBrush}" VerticalAlignment="Center"/><Button Content="保存配置" HorizontalAlignment="Right" Click="Save_Click" Background="{StaticResource AccentBrush}"/></Grid>
   </Grid>
 </Window>

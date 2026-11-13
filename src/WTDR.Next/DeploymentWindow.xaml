@@ -12,7 +12,7 @@
     <StackPanel Grid.Row="3" Margin="0,22,0,20">
       <ProgressBar x:Name="TaskProgress" Height="6" IsIndeterminate="True" Foreground="{StaticResource AccentBrush}"/>
       <Border Background="{StaticResource PanelBrush}" CornerRadius="10" Margin="0,18,0,0" Padding="12">
-        <ScrollViewer VerticalScrollBarVisibility="Auto"><TextBox x:Name="LogBox" IsReadOnly="True" AcceptsReturn="True" TextWrapping="Wrap" Background="Transparent" Foreground="#D1D5DB" BorderThickness="0" MinHeight="115"/></ScrollViewer>
+        <ScrollViewer VerticalScrollBarVisibility="Auto"><TextBox x:Name="LogBox" IsReadOnly="True" AcceptsReturn="True" TextWrapping="Wrap" Background="Transparent" Foreground="#344054" BorderThickness="0" MinHeight="115"/></ScrollViewer>
       </Border>
     </StackPanel>
     <Grid Grid.Row="4"><TextBlock x:Name="StatusText" Text="部署正在运行，请勿关闭窗口" Foreground="{StaticResource MutedBrush}" FontSize="11"/><TextBlock x:Name="CountText" Text="" HorizontalAlignment="Right" Foreground="{StaticResource MutedBrush}" FontSize="11"/></Grid>

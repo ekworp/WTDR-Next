@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Media;
 using WTDR.Next.Models;
 using WTDR.Next.Services;
 
@@ -10,10 +11,12 @@ public partial class MainWindow : Window
 {
     private readonly PackService _packService = new();
     private readonly string _packDirectory = Path.Combine(AppContext.BaseDirectory, "Pack");
+    private IReadOnlyList<PackInfo> _allPacks = [];
 
     public MainWindow()
     {
         InitializeComponent();
+        SystemBackdrop = new MicaBackdrop();
         EnvironmentText.Text = $"{Environment.OSVersion.VersionString}\n架构：{(Environment.Is64BitOperatingSystem ? "X64" : "X86")}\n权限：{(new System.Security.Principal.WindowsPrincipal(System.Security.Principal.WindowsIdentity.GetCurrent()).IsInRole(System.Security.Principal.WindowsBuiltInRole.Administrator) ? "管理员" : "普通用户")}";
         RefreshPackages();
         Log("WTDR.Next 已启动");
@@ -22,8 +25,16 @@ public partial class MainWindow : Window
     private void RefreshPackages()
     {
         var packs = _packService.Scan(_packDirectory);
-        PackageList.ItemsSource = packs;
+        _allPacks = packs;
+        ApplyPackageFilter();
         PackageCountText.Text = packs.Count.ToString();
+    }
+
+    private void SearchBox_TextChanged(object sender, TextChangedEventArgs e) => ApplyPackageFilter();
+    private void ApplyPackageFilter()
+    {
+        var query = SearchBox?.Text?.Trim() ?? "";
+        PackageList.ItemsSource = string.IsNullOrWhiteSpace(query) ? _allPacks : _allPacks.Where(x => x.Name.Contains(query, StringComparison.OrdinalIgnoreCase)).ToList();
     }
 
     private async void Apply_Click(object sender, RoutedEventArgs e)
@@ -45,6 +56,7 @@ public partial class MainWindow : Window
     private void Logs_Click(object sender, RoutedEventArgs e) => LogBox.Focus(FocusState.Programmatic);
     private void Settings_Click(object sender, RoutedEventArgs e) => new ConfigEditorWindow().Activate();
     private void Log(string message) => LogBox.Text += $"[{DateTime.Now:HH:mm:ss}] {message}{Environment.NewLine}";
+    private void ClearLog_Click(object sender, RoutedEventArgs e) => LogBox.Text = "";
 
     private async Task ShowMessageAsync(string message, string title)
     {
